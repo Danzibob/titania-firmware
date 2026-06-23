@@ -13,6 +13,7 @@ async framework.
 | RAM | 20 KB |
 | Sensors | BMI260 (IMU), BMP580 (barometer) on shared I²C |
 | External Flash | MX25R3235FM1IL0 (4MB) |
+| Other | Capacitive piezo buzzer (no driver) |
 
 The 128 KB flash is the binding constraint — keep an eye on binary size (see
 [Building](#building) and [Troubleshooting](#troubleshooting)).
