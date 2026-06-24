@@ -1,39 +1,47 @@
-use embassy_stm32::gpio::OutputType;
-use embassy_stm32::peripherals::{PB0, PB1, TIM3};
 use embassy_stm32::time::Hertz;
-use embassy_stm32::timer::low_level::{CountingMode, OutputPolarity};
-use embassy_stm32::timer::simple_pwm::{PwmPin, SimplePwm};
-use embassy_stm32::Peri;
+use embassy_stm32::timer::{Channel, GeneralInstance4Channel};
+use embassy_stm32::timer::low_level::OutputPolarity;
+use embassy_stm32::timer::simple_pwm::SimplePwm;
 use embassy_time::{Duration, Timer};
 
-/// Drive the piezo buzzer between PB0 (TIM3_CH3) and PB1 (TIM3_CH4) at 1 kHz
-/// for `duration`. CH3 and CH4 are driven with inverted polarity so the full
-/// supply voltage appears across the piezo on each half-cycle.
-pub async fn buzz(tim3: Peri<'_, TIM3>, pb0: Peri<'_, PB0>, pb1: Peri<'_, PB1>, duration: Duration) {
-    let ch3_pin = PwmPin::new(pb0, OutputType::PushPull);
-    let ch4_pin = PwmPin::new(pb1, OutputType::PushPull);
-
-    let mut pwm = SimplePwm::new(
-        tim3,
-        None,
-        None,
-        Some(ch3_pin),
-        Some(ch4_pin),
-        Hertz(2_000),
-        CountingMode::EdgeAlignedUp,
-    );
-
-    {
-        let mut ch = pwm.ch3();
-        ch.set_duty_cycle_percent(50);
-        ch.enable();
-    }
-    {
-        let mut ch = pwm.ch4();
-        ch.set_polarity(OutputPolarity::ActiveLow);
-        ch.set_duty_cycle_percent(50);
-        ch.enable();
+/// A Buzzer struct that holds the peripherals needed to drive a piezo buzzer.
+/// We should be able to specify the timer and pins we want to use for the buzzer, 
+/// so let's make it generic over any TIMx that has 4 channels
+/// and any pair of channels that we want to use for the buzzer.
+pub struct Buzzer<'a, T: GeneralInstance4Channel> {
+    pwm: SimplePwm<'a, T>,
+    pos: Channel,
+    neg: Channel,
+}
+impl<'a, T: GeneralInstance4Channel> Buzzer<'a, T> {
+    pub fn new(pwm: SimplePwm<'a, T>, pos: Channel, neg: Channel) -> Self {
+        Self { pwm, pos, neg }
     }
 
-    Timer::after(duration).await;
+    pub async fn buzz(&mut self, duration: Duration, frequency: Hertz) {
+        self.pwm.set_frequency(frequency);
+        {
+            let mut pos = self.pwm.channel(self.pos);
+            pos.set_polarity(OutputPolarity::ActiveHigh);
+            pos.set_duty_cycle_percent(50);
+            pos.enable();
+        }
+        {
+            let mut neg = self.pwm.channel(self.neg);
+            neg.set_polarity(OutputPolarity::ActiveLow);
+            neg.set_duty_cycle_percent(50);
+            neg.enable();
+        }
+
+        Timer::after(duration).await;
+
+        {
+            let mut pos = self.pwm.channel(self.pos);
+            pos.disable();
+        }
+        {
+            let mut neg = self.pwm.channel(self.neg);
+            neg.disable();
+        }
+    }
 }

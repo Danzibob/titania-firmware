@@ -6,6 +6,11 @@ mod buzz;
 use defmt::*;
 use defmt_rtt as _;
 use embassy_executor::Spawner;
+use embassy_stm32::gpio::OutputType;
+use embassy_stm32::time::Hertz;
+use embassy_stm32::timer::low_level::CountingMode;
+use embassy_stm32::timer::simple_pwm::{SimplePwm,PwmPin};
+use embassy_stm32::timer::Channel;
 use embassy_time::{Duration, Timer};
 
 #[cfg(feature = "probe")]
@@ -19,11 +24,27 @@ const BUZZ_PAUSE:    Duration = Duration::from_millis(500);
 
 #[embassy_executor::main(executor = "embassy_stm32::executor::Executor", entry = "cortex_m_rt::entry")]
 async fn main(_spawner: Spawner) {
-    let mut p = embassy_stm32::init(Default::default());
+    let p = embassy_stm32::init(Default::default());
+
     info!("Titania starting");
 
+    // Initialize the buzzer with TIM3 ch3&4, using PB0 and PB1 as the output pins.
+    let mut buzzer = buzz::Buzzer::new(
+        SimplePwm::new(
+            p.TIM3, 
+            None,
+            None,
+            Some(PwmPin::new(p.PB0, OutputType::PushPull)),
+            Some(PwmPin::new(p.PB1, OutputType::PushPull)),
+            Hertz(1000),
+            CountingMode::EdgeAlignedUp
+        ),
+        Channel::Ch3,
+        Channel::Ch4
+    );
+
     loop {
-        buzz::buzz(p.TIM3.reborrow(), p.PB0.reborrow(), p.PB1.reborrow(), BUZZ_DURATION).await;
+        buzzer.buzz(BUZZ_DURATION, Hertz(1_000)).await;
         Timer::after(BUZZ_PAUSE).await;
     }
 }
