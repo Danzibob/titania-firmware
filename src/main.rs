@@ -2,6 +2,7 @@
 #![no_main]
 
 mod buzz;
+mod rickroll;
 
 use defmt::*;
 use defmt_rtt as _;
@@ -45,6 +46,17 @@ async fn main(_spawner: Spawner) {
 
     loop {
         buzzer.buzz(BUZZ_DURATION, Hertz(1_000)).await;
-        Timer::after(BUZZ_PAUSE).await;
+        Timer::after(Duration::from_millis(2000)).await;
+
+        for note in rickroll::RICKROLL.iter() {
+            if note.pitch != rickroll::Pitch::REST {
+                buzzer.buzz(
+                    Duration::from_millis((rickroll::BASIS * note.duration as f32) as u64),
+                    Hertz(note.pitch as u32)
+                ).await;
+            } else {
+                Timer::after(Duration::from_millis((rickroll::BASIS * note.duration as f32) as u64)).await;
+            }
+        }
     }
 }
