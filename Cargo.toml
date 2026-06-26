@@ -4,6 +4,7 @@ name = "titania-firmware"
 version = "0.1.0"
 license = "MIT"
 publish = false
+rust-version = "1.96.0"
 
 [dependencies]
 embassy-stm32 = { version = "0.6.0", features = ["defmt", "stm32l072cb", "unstable-pac", "time-driver-any", "exti", "memory-x", "low-power", "executor-thread"]  }
@@ -27,13 +28,8 @@ embedded-hal = "0.2.6"
 static_cell = { version = "2" }
 portable-atomic = { version = "1.5", features = ["unsafe-assume-single-core"] }
 
-panic-reset = { version = "0.1.1", optional = true }
-panic-probe = { version = "1.0.0", features = ["print-defmt"], optional = true }
-
-[features]
-default = ["probe"]
-probe = ["dep:panic-probe"]
-release-build = ["dep:panic-reset"]
+panic-reset = { version = "0.1.1" }
+panic-probe = { version = "1.0.0", features = ["print-defmt"] }
 
 [profile.release]
 opt-level = "s"
