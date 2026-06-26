@@ -20,20 +20,15 @@ The 128 KB flash is the binding constraint — keep an eye on binary size (see
 
 ## Prerequisites
 
-A recent stable Rust toolchain (developed against 1.96.0). Install via
+A recent stable Rust toolchain (developed against `1.96.0`). Install via
 [rustup](https://rustup.rs) if you don't have it.
-
-### Toolchain components
-
-```bash
-# Bare-metal compilation target for the L072 (Cortex-M0+)
-rustup target add thumbv6m-none-eabi
-
-# LLVM tools — needed by cargo-binutils for objcopy/size/nm
-rustup component add llvm-tools
-```
+You should have the `thumbv6m-none-eabi` target and the `llvm-tools` component
+installed with `rustup` - this should be automatic.
 
 ### Tools
+
+Many of the tasks in the project are automated with the command runner
+[`just`](https://github.com/casey/just), it is strongly recommended you install it.
 
 ```bash
 # ELF -> raw binary conversion (provides `cargo objcopy`, `cargo size`, ...)
@@ -81,6 +76,7 @@ panic handler that traps into the debugger.
 ```bash
 cargo build          # debug build
 cargo run            # build, flash via probe-rs, and stream defmt logs
+just debug           # as above
 ```
 
 ### Production (no probe, for DFU)
@@ -89,8 +85,12 @@ Without `debug_assertions`, the debugger-trap panic handler is swapped for `pani
 (the board reboots on panic instead of hanging).
 Release mode also applies size-oriented release optimisations.
 
+`just release-dfu` will emit a flashable binary.
+
+<details><summary>Manual Steps</summary>
+
 ```bash
-cargo build --release --no-default-features
+cargo build --release --no-default-features      # perform an optimised build
 ```
 
 Then convert the ELF to a raw binary for the bootloader:
@@ -99,6 +99,8 @@ Then convert the ELF to a raw binary for the bootloader:
 cargo objcopy --release --no-default-features \
   -- -O binary titania.bin
 ```
+
+</details>
 
 > [!TIP]
 > No `cargo objcopy`? It comes from `cargo-binutils` (see [Prerequisites](#tools)). As a
@@ -121,7 +123,8 @@ bootloader is needed.
 1. Put the board into bootloader mode: pull **`BOOT0` high** (to `VCC`) and reset or
    power-cycle, with the USB cable connected. The chip enumerates as a DfuSe device
    (`0483:df11`).
-2. Flash the binary to flash base and start the app:
+2. Flash the binary to flash base and start the app with `just flash-dfu`.
+   <details><summary>Manual Steps</summary>
 
    ```bash
    dfu-util --list                              # confirm the device appears
@@ -131,7 +134,8 @@ bootloader is needed.
    - `-a 0` selects the internal-flash alternate setting
    - `-s 0x08000000` is the flash base load address (DfuSe needs it explicit)
    - `:leave` exits DFU and boots the freshly flashed app
-3. Return `BOOT0` to ground so normal resets run the application.
+   </details>
+ 3. Return `BOOT0` to ground so normal resets run the application.
 
 > **Mass flashing:** every board enumerates with the same `0483:df11` ID, so DFU is
 > effectively one-board-at-a-time. A jig that cycles power/BOOT0 and runs the
