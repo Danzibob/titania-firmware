@@ -75,7 +75,7 @@ To use a debug probe and the DFU bootloader without `sudo`:
 
 ### Development (with a debug probe)
 
-The default feature set targets a connected probe: defmt logging over RTT and a
+Building with `debug_assertions` targets a connected probe: defmt logging over RTT and a
 panic handler that traps into the debugger.
 
 ```bash
@@ -85,18 +85,18 @@ cargo run            # build, flash via probe-rs, and stream defmt logs
 
 ### Production (no probe, for DFU)
 
-The `release-build` feature swaps the debugger-trap panic handler for `panic-reset`
-(the board reboots on panic instead of hanging), and applies size-oriented release
-optimisations.
+Without `debug_assertions`, the debugger-trap panic handler is swapped for `panic-reset`
+(the board reboots on panic instead of hanging).
+Release mode also applies size-oriented release optimisations.
 
 ```bash
-cargo build --release --no-default-features --features release-build
+cargo build --release --no-default-features
 ```
 
 Then convert the ELF to a raw binary for the bootloader:
 
 ```bash
-cargo objcopy --release --no-default-features --features release-build \
+cargo objcopy --release --no-default-features \
   -- -O binary titania.bin
 ```
 
@@ -140,12 +140,7 @@ bootloader is needed.
 
 ## Logging & panic behaviour
 
-Controlled by Cargo features:
-
-| Feature | Panic handler | Logging | Use |
-|---|---|---|---|
-| `probe` (default) | `panic-probe` (traps debugger) | defmt over RTT | Bench dev with a probe |
-| `release-build` | `panic-reset` (reboots) | defmt logger linked but inert (no probe draining RTT) | Production DFU image |
+Controlled by whether [`debug_assertions`](https://doc.rust-lang.org/reference/conditional-compilation.html#debug_assertions) are enabled.
 
 `defmt` and `defmt-rtt` are linked in both builds; only the panic handler differs.
 The RTT logger is harmless without a probe — it writes into a buffer nobody reads. If

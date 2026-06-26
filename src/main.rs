@@ -14,11 +14,12 @@ use embassy_stm32::timer::simple_pwm::{SimplePwm,PwmPin};
 use embassy_stm32::timer::Channel;
 use embassy_time::{Duration, Timer};
 
-#[cfg(feature = "probe")]
-use panic_probe as _;
-
-#[cfg(feature = "release-build")]
-use panic_reset as _;
+cfg_select! {
+    // if debug assertions are turned on, panic using the connected probe
+    debug_assertions => { use panic_probe as _; }
+    // otherwise, just reset the chip
+    _ => { use panic_reset as _; }
+}
 
 const BUZZ_DURATION: Duration = Duration::from_millis(500);
 const BUZZ_PAUSE:    Duration = Duration::from_millis(500);
