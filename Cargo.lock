@@ -96,6 +96,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bmi2"
+version = "0.1.2"
+source = "git+https://github.com/qrasmont/bmi2.git?rev=d9c5fea26f5837e7a65881fc37f72dcbc25caf67#d9c5fea26f5837e7a65881fc37f72dcbc25caf67"
+dependencies = [
+ "embedded-hal-async",
+ "maybe-async",
+]
+
+[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -763,6 +772,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "maybe-async"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "746873a384ad60adc5db74471dfaba74bd278afbdcfd81db93fafcdfc8b5ca0c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.118",
+]
+
+[[package]]
 name = "memchr"
 version = "2.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1123,10 +1143,12 @@ dependencies = [
 name = "titania-firmware"
 version = "0.1.0"
 dependencies = [
+ "bmi2",
  "cortex-m",
  "cortex-m-rt",
  "defmt 1.1.0",
  "defmt-rtt",
+ "embassy-embedded-hal",
  "embassy-executor",
  "embassy-futures",
  "embassy-stm32",

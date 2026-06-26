@@ -1,10 +1,10 @@
+#![allow(dead_code)]
 // Set the tempo in beats per minute (BPM)
 const TEMPO: f32 = 114.0;
 
 // Define a time basis of a 1/16 note in ms
 pub const BASIS: f32 = (60.0 / TEMPO) * 1000.0 / 4.0;
 
-#[allow(dead_code)]
 #[derive(PartialEq, Clone, Copy)]
 pub enum Pitch {
     REST = 0,

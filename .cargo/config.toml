@@ -12,5 +12,5 @@ rustflags = [
 
 
 [env]
-DEFMT_LOG = "trace"
+DEFMT_LOG = "trace,embassy_stm32=warn"
 
