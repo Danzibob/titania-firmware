@@ -165,8 +165,10 @@ targets, which need libtest — absent on bare-metal. Set
 this repo so it's fixed on clone.)
 
 **`.rodata`/`.data` will not fit in region `FLASH`.** The binary exceeds 128 KB.
-Confirm the `embassy-stm32` chip feature is `stm32l072cb` (not a larger part), and that
-release builds use size optimisation (`opt-level = "s"`/`"z"`, `lto`, `codegen-units = 1`).
+Try reducing the number of dependencies or their features[^1].
+
+[^1]: Binary-size optimisation is enabled by default on release builds, so you'll need to
+find another way to shrink the final build artefact.
 
 **`no '.defmt' section` from probe-rs.** `-Tdefmt.x` is missing from the linker args —
 check `rustflags` in `.cargo/config.toml`, and that no `RUSTFLAGS` env var is shadowing
