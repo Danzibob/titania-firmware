@@ -1,11 +1,11 @@
 use embassy_stm32::time::Hertz;
-use embassy_stm32::timer::{Channel, GeneralInstance4Channel};
 use embassy_stm32::timer::low_level::OutputPolarity;
 use embassy_stm32::timer::simple_pwm::SimplePwm;
+use embassy_stm32::timer::{Channel, GeneralInstance4Channel};
 use embassy_time::{Duration, Timer};
 
 /// A Buzzer struct that holds the peripherals needed to drive a piezo buzzer.
-/// We should be able to specify the timer and pins we want to use for the buzzer, 
+/// We should be able to specify the timer and pins we want to use for the buzzer,
 /// so let's make it generic over any TIMx that has 4 channels
 /// and any pair of channels that we want to use for the buzzer.
 pub struct Buzzer<'a, T: GeneralInstance4Channel> {

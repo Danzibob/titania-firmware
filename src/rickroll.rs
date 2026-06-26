@@ -4,6 +4,7 @@ const TEMPO: f32 = 114.0;
 // Define a time basis of a 1/16 note in ms
 pub const BASIS: f32 = (60.0 / TEMPO) * 1000.0 / 4.0;
 
+#[allow(dead_code)]
 #[derive(PartialEq, Clone, Copy)]
 pub enum Pitch {
     REST = 0,
@@ -21,16 +22,15 @@ pub enum Pitch {
     B4 = 494,
     C5 = 523,
     CS5 = 554,
-    D5 = 587
+    D5 = 587,
 }
-
 
 pub struct Note {
     pub pitch: Pitch,
     pub duration: u32, // Duration in terms of 1/16 notes
 }
 
-
+#[rustfmt::skip]
 pub const RICKROLL: [Note; 12] = [
     Note { pitch: Pitch::G4, duration: 6 },
     Note { pitch: Pitch::A4, duration: 6 },
