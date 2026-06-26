@@ -32,10 +32,12 @@ panic-reset = { version = "0.1.1" }
 panic-probe = { version = "1.0.0", features = ["print-defmt"] }
 
 [profile.release]
-opt-level = "s"
-lto = "fat"
-codegen-units = 1
+opt-level = "z"
 debug = false
+strip = true
+lto = true
+codegen-units = 1
+incremental = false
 
 [package.metadata.embassy]
 build = [
