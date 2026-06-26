@@ -1,7 +1,7 @@
 # Titania 3 Firmware
 
-Embedded Rust firmware for the Titania data logger built on the [Embassy](https://embassy.dev)
-async framework.
+Embedded Rust firmware for the [Titania 3 data logger](https://github.com/Danzibob/Titania3)
+built on the [Embassy](https://embassy.dev) async framework.
 
 ## Hardware target
 
@@ -44,7 +44,7 @@ cargo install cargo-binutils
 cargo install probe-rs-tools --locked
 ```
 
-For production DFU flashing you also need `dfu-util`:
+For production DFU flashing you also need [`dfu-util`](https://dfu-util.sourceforge.net/):
 
 ```bash
 # Debian / Ubuntu
@@ -101,7 +101,7 @@ cargo objcopy --release --no-default-features \
 ```
 
 > [!TIP]
-> No `cargo objcopy`? It comes from `cargo-binutils` (see Prerequisites). As a
+> No `cargo objcopy`? It comes from `cargo-binutils` (see [Prerequisites](#tools)). As a
 > fallback you can call `llvm-objcopy -O binary <elf> titania.bin` directly on the
 > ELF in `target/thumbv6m-none-eabi/release/`.
 
@@ -114,10 +114,11 @@ cargo objcopy --release --no-default-features \
 
 ### Production — USB DFU (no probe)
 
-The STM32L072's built-in ROM bootloader speaks USB DFU, so no probe or pre-flashed
+The STM32L072's built-in ROM bootloader speaks USB
+[DFU](https://www.usb.org/sites/default/files/DFU_1.1.pdf), so no probe or pre-flashed
 bootloader is needed.
 
-1. Put the board into bootloader mode: pull **BOOT0 high** (to VCC) and reset or
+1. Put the board into bootloader mode: pull **`BOOT0` high** (to `VCC`) and reset or
    power-cycle, with the USB cable connected. The chip enumerates as a DfuSe device
    (`0483:df11`).
 2. Flash the binary to flash base and start the app:
@@ -130,7 +131,7 @@ bootloader is needed.
    - `-a 0` selects the internal-flash alternate setting
    - `-s 0x08000000` is the flash base load address (DfuSe needs it explicit)
    - `:leave` exits DFU and boots the freshly flashed app
-3. Return BOOT0 to ground so normal resets run the application.
+3. Return `BOOT0` to ground so normal resets run the application.
 
 > **Mass flashing:** every board enumerates with the same `0483:df11` ID, so DFU is
 > effectively one-board-at-a-time. A jig that cycles power/BOOT0 and runs the
@@ -152,7 +153,6 @@ the space.
 ```
 .cargo/config.toml   # target, runner (probe-rs --chip STM32L072CBTx), link args
 .vscode/settings.json # rust-analyzer config (allTargets = false, see below)
-memory.x             # flash/RAM regions (generated from the chip feature)
 src/main.rs          # firmware entry point
 Cargo.toml           # dependencies and feature definitions
 ```
@@ -161,8 +161,9 @@ Cargo.toml           # dependencies and feature definitions
 
 **`can't find crate for 'test'` flagged by rust-analyzer.** The analyzer checks test
 targets, which need libtest — absent on bare-metal. Set
-`rust-analyzer.check.allTargets = false` in `.vscode/settings.json`. (Committed in
-this repo so it's fixed on clone.)
+`check.allTargets = false` in your language server configuration[^1].
+
+[^1]: Already committed in this repo for VS Code.
 
 **`.rodata`/`.data` will not fit in region `FLASH`.** The binary exceeds 128 KB.
 Confirm the `embassy-stm32` chip feature is `stm32l072cb` (not a larger part), and that
