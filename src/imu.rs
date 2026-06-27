@@ -1,13 +1,11 @@
-use crate::i2c_bus;
+use crate::I2cBusDevice;
 
 use bmi2::Bmi2;
 use bmi2::interface::I2cInterface;
 use bmi2::types::*;
 use bmi2::{Builder, I2cAddr, config};
 
-pub async fn bmi(
-    i2c_dev: i2c_bus::BusDevice,
-) -> Bmi2<I2cInterface<i2c_bus::BusDevice>, embassy_time::Delay> {
+pub async fn bmi(i2c_dev: I2cBusDevice) -> Bmi2<I2cInterface<I2cBusDevice>, embassy_time::Delay> {
     // Initialize the BMI2xx sensor with the I2C device handle.
     let mut config_buf = [0u8; 512];
     Builder::i2c(

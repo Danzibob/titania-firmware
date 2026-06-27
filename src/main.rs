@@ -2,7 +2,6 @@
 #![no_main]
 
 mod buzz;
-mod i2c_bus;
 mod imu;
 mod rickroll;
 
@@ -21,17 +20,26 @@ use embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice;
 use embassy_executor::Spawner;
 use embassy_stm32::gpio::OutputType;
 use embassy_stm32::i2c::I2c;
+use embassy_stm32::mode::Async;
 use embassy_stm32::peripherals::*;
 use embassy_stm32::time::Hertz;
 use embassy_stm32::timer::Channel;
 use embassy_stm32::timer::low_level::CountingMode;
 use embassy_stm32::timer::simple_pwm::{PwmPin, SimplePwm};
 use embassy_stm32::{bind_interrupts, dma, i2c};
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::mutex::Mutex;
 use embassy_time::{Duration, Timer};
 
-static I2C_BUS: StaticCell<i2c_bus::I2cBus> = StaticCell::new();
+pub type I2cBus = Mutex<NoopRawMutex, i2c::I2c<'static, Async, i2c::Master>>;
+pub type I2cBusDevice = I2cDevice<'static, NoopRawMutex, i2c::I2c<'static, Async, i2c::Master>>;
 
+static I2C_BUS: StaticCell<I2cBus> = StaticCell::new();
+
+// We need to bind the interrupts for the I2C and DMA peripherals used by the I2C bus.
+// The I2C1 Event and Error interrupts are used to wake the I2C bus task when an I2C transfer is complete or an error occurs.
+// Likewise, the DMA1 Channel 2 and 3 interrupts are used to wake the I2C bus task when a DMA transfer is complete or an error occurs.
+// This must match the DMA channels used by the I2C bus, which are configured in the I2c::new() call below.
 bind_interrupts!(struct Irqs {
     I2C1 => i2c::EventInterruptHandler<I2C1>, i2c::ErrorInterruptHandler<I2C1>;
     DMA1_CHANNEL2_3 => dma::InterruptHandler<DMA1_CH2>, dma::InterruptHandler<DMA1_CH3>;
@@ -62,6 +70,7 @@ async fn main(_spawner: Spawner) {
     );
 
     // Initialize the I2C bus with I2C1, using PB6 and PB7 as the SCL and SDA pins.
+    // And use DMA1 channel 2 and 3 for I2C1 TX and RX respectively.
     let i2c = I2c::new(
         p.I2C1,
         p.PB6,
@@ -76,7 +85,6 @@ async fn main(_spawner: Spawner) {
 
     // Shared async I2C device handle for the BMI2xx.
     let i2c_dev1 = I2cDevice::new(i2c_bus);
-    let _i2c_dev2 = I2cDevice::new(i2c_bus);
 
     let mut bmi = imu::bmi(i2c_dev1).await;
 
@@ -87,6 +95,6 @@ async fn main(_spawner: Spawner) {
 
         let data = bmi.get_data().await.expect("Failed to read BMI2 data");
 
-        info!("Accel: x={} y={} z={}", data.acc.x, data.acc.y, data.acc.z);
+        defmt::println!("Accel: x={} y={} z={}", data.acc.x, data.acc.y, data.acc.z);
     }
 }
