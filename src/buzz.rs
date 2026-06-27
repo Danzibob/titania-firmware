@@ -4,17 +4,29 @@ use embassy_stm32::timer::simple_pwm::SimplePwm;
 use embassy_stm32::timer::{Channel, GeneralInstance4Channel};
 use embassy_time::{Duration, Timer};
 
-/// A Buzzer struct that holds the peripherals needed to drive a piezo buzzer.
-/// We should be able to specify the timer and pins we want to use for the buzzer,
-/// so let's make it generic over any TIMx that has 4 channels
-/// and any pair of channels that we want to use for the buzzer.
-pub struct Buzzer<'a, T: GeneralInstance4Channel> {
-    pwm: SimplePwm<'a, T>,
+/// Piezo buzzer driven with Pulse Width Modulation.
+///
+/// Designed to be driven by two "opposing" PWM pins for extra volume.
+/// Owns the peripherals needed to drive it.
+///
+/// `T` is generic over `TIM*` timers with 4 channels.
+pub struct Buzzer<T: GeneralInstance4Channel> {
+    // 'static means that this struct can live forever. this is okay
+    // because the embassy_stm32::init gives us static implementations
+    // (and you can get the controller back with destroy())
+    pwm: SimplePwm<'static, T>,
     pos: Channel,
     neg: Channel,
 }
-impl<'a, T: GeneralInstance4Channel> Buzzer<'a, T> {
-    pub fn new(pwm: SimplePwm<'a, T>, pos: Channel, neg: Channel) -> Self {
+
+impl<T: GeneralInstance4Channel> Buzzer<T> {
+    /// Initialise a buzzer.
+    ///
+    /// - `pwm` is the configured PWM controller.
+    /// - `pos` and `neg` are the channel indices in `pwm`'s timer which refer
+    ///   to the active-high and active-low channels connected to the buzzer,
+    ///   respectively.
+    pub fn new(pwm: SimplePwm<'static, T>, pos: Channel, neg: Channel) -> Self {
         Self { pwm, pos, neg }
     }
 
@@ -43,5 +55,12 @@ impl<'a, T: GeneralInstance4Channel> Buzzer<'a, T> {
             let mut neg = self.pwm.channel(self.neg);
             neg.disable();
         }
+    }
+
+    /// Deconstruct `self`, returning the underlying PWM handle for reuse.
+    // channels are literally just constrained integers used for indexing,
+    // so we don't need to bother with returning those
+    pub fn destroy(self) -> SimplePwm<'static, T> {
+        self.pwm
     }
 }
