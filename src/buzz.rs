@@ -1,47 +1,89 @@
+use embassy_stm32::Peri;
+use embassy_stm32::gpio::OutputType;
 use embassy_stm32::time::Hertz;
-use embassy_stm32::timer::low_level::OutputPolarity;
-use embassy_stm32::timer::simple_pwm::SimplePwm;
-use embassy_stm32::timer::{Channel, GeneralInstance4Channel};
-use embassy_time::{Duration, Timer};
+use embassy_stm32::timer::low_level::{CountingMode, OutputPolarity};
+use embassy_stm32::timer::simple_pwm::{PwmPin, SimplePwm, SimplePwmChannel};
+use embassy_stm32::timer::{Ch3, Ch4, TimerChannel, TimerPin};
+use embassy_time::{Duration, Timer as EmbTimer};
 
-/// A Buzzer struct that holds the peripherals needed to drive a piezo buzzer.
-/// We should be able to specify the timer and pins we want to use for the buzzer,
-/// so let's make it generic over any TIMx that has 4 channels
-/// and any pair of channels that we want to use for the buzzer.
-pub struct Buzzer<'a, T: GeneralInstance4Channel> {
-    pwm: SimplePwm<'a, T>,
-    pos: Channel,
-    neg: Channel,
+pub type Timer = embassy_stm32::peripherals::TIM3;
+pub type PosChan = Ch3;
+pub type NegChan = Ch4;
+
+/// Piezo buzzer driven with Pulse Width Modulation.
+///
+/// Designed to be driven by two "opposing" PWM pins for extra volume.
+/// Owns the peripherals needed to drive it.
+///
+/// This implementation uses [`Timer`] with [`PosChan`] and [`NegChan`].
+pub struct Buzzer {
+    // 'static means that this struct can live forever. this is okay
+    // because the embassy_stm32::init gives us static implementations
+    // (and you can get the controller back with destroy())
+    pwm: SimplePwm<'static, Timer>,
 }
-impl<'a, T: GeneralInstance4Channel> Buzzer<'a, T> {
-    pub fn new(pwm: SimplePwm<'a, T>, pos: Channel, neg: Channel) -> Self {
-        Self { pwm, pos, neg }
+
+impl Buzzer {
+    /// Initialise the buzzer.
+    ///
+    /// `timer` is the (owned) [`Timer`] peripheral handle.
+    /// `*_pin` are the (owned) pins for channels [`PosChan`] and [`NegChan`].
+    pub fn init(
+        timer: Peri<'static, Timer>,
+        pos_pin: Peri<'static, impl TimerPin<Timer, PosChan>>,
+        neg_pin: Peri<'static, impl TimerPin<Timer, NegChan>>,
+    ) -> Self {
+        let pos_pin = PwmPin::new(pos_pin, OutputType::PushPull);
+        let neg_pin = PwmPin::new(neg_pin, OutputType::PushPull);
+        let mut pwm = SimplePwm::new(
+            timer,
+            // note: because of how embassy have made this constructor work, the ordering
+            // of these has to change if you change what channels of the timer you're using
+            // (also stopping this struct from being truly generic :( )
+            // it should be a builder with a generic param really
+            None,
+            None,
+            Some(pos_pin),
+            Some(neg_pin),
+            Hertz(1000),
+            CountingMode::EdgeAlignedUp,
+        );
+
+        // configure as positive and negative
+        {
+            let mut pos = pwm.channel(PosChan::CHANNEL);
+            pos.set_polarity(OutputPolarity::ActiveHigh);
+        }
+        {
+            let mut neg = pwm.channel(NegChan::CHANNEL);
+            neg.set_polarity(OutputPolarity::ActiveLow);
+        }
+
+        Self { pwm }
     }
 
+    fn for_both_channels(&mut self, mut func: impl FnMut(SimplePwmChannel<'_, Timer>)) {
+        func(self.pwm.channel(PosChan::CHANNEL));
+        func(self.pwm.channel(NegChan::CHANNEL));
+    }
+
+    /// Buzz for `duration` with the given `frequency`/pitch.
     pub async fn buzz(&mut self, duration: Duration, frequency: Hertz) {
         self.pwm.set_frequency(frequency);
-        {
-            let mut pos = self.pwm.channel(self.pos);
-            pos.set_polarity(OutputPolarity::ActiveHigh);
-            pos.set_duty_cycle_percent(50);
-            pos.enable();
-        }
-        {
-            let mut neg = self.pwm.channel(self.neg);
-            neg.set_polarity(OutputPolarity::ActiveLow);
-            neg.set_duty_cycle_percent(50);
-            neg.enable();
-        }
 
-        Timer::after(duration).await;
+        self.for_both_channels(|mut chan| {
+            chan.set_duty_cycle_percent(50);
+            chan.enable();
+        });
 
-        {
-            let mut pos = self.pwm.channel(self.pos);
-            pos.disable();
-        }
-        {
-            let mut neg = self.pwm.channel(self.neg);
-            neg.disable();
-        }
+        EmbTimer::after(duration).await;
+
+        self.for_both_channels(|mut chan| chan.disable());
+    }
+
+    /// Deconstruct `self`, returning the underlying PWM handle for reuse.
+    #[allow(dead_code)]
+    pub fn destroy(self) -> SimplePwm<'static, Timer> {
+        self.pwm
     }
 }

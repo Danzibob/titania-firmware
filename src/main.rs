@@ -20,18 +20,16 @@ use static_cell::StaticCell;
 // embassy
 use embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice;
 use embassy_executor::Spawner;
-use embassy_stm32::gpio::OutputType;
 use embassy_stm32::i2c::I2c;
 use embassy_stm32::mode::Async;
 use embassy_stm32::peripherals::{DMA1_CH2, DMA1_CH3, I2C1};
 use embassy_stm32::time::Hertz;
-use embassy_stm32::timer::Channel;
-use embassy_stm32::timer::low_level::CountingMode;
-use embassy_stm32::timer::simple_pwm::{PwmPin, SimplePwm};
 use embassy_stm32::{bind_interrupts, dma, i2c};
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::mutex::Mutex;
 use embassy_time::{Duration, Timer};
+
+use crate::buzz::Buzzer;
 
 pub type I2cBus = Mutex<NoopRawMutex, i2c::I2c<'static, Async, i2c::Master>>;
 pub type I2cBusDevice = I2cDevice<'static, NoopRawMutex, i2c::I2c<'static, Async, i2c::Master>>;
@@ -56,20 +54,8 @@ async fn main(_spawner: Spawner) {
 
     info!("Titania starting");
 
-    // Initialize the buzzer with TIM3 ch3&4, using PB0 and PB1 as the output pins.
-    let mut buzzer = buzz::Buzzer::new(
-        SimplePwm::new(
-            p.TIM3,
-            None,
-            None,
-            Some(PwmPin::new(p.PB0, OutputType::PushPull)),
-            Some(PwmPin::new(p.PB1, OutputType::PushPull)),
-            Hertz(1000),
-            CountingMode::EdgeAlignedUp,
-        ),
-        Channel::Ch3,
-        Channel::Ch4,
-    );
+    // Initialize the buzzer.
+    let mut buzzer = Buzzer::init(p.TIM3, p.PB0, p.PB1);
 
     // Initialize the I2C bus with I2C1, using PB6 and PB7 as the SCL and SDA pins.
     // And use DMA1 channel 2 and 3 for I2C1 TX and RX respectively.
@@ -90,6 +76,7 @@ async fn main(_spawner: Spawner) {
 
     let mut bmi = imu::bmi(i2c_dev1).await;
 
+    info!("beep!");
     buzzer.buzz(Duration::from_millis(100), Hertz(1000)).await;
 
     loop {
