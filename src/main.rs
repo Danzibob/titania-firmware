@@ -3,6 +3,7 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::used_underscore_binding)]
 
+mod baro;
 mod buzz;
 mod imu;
 mod rickroll;
@@ -72,9 +73,13 @@ async fn main(_spawner: Spawner) {
     let i2c_bus = I2C_BUS.init(Mutex::new(i2c));
 
     // Shared async I2C device handle for the BMI2xx.
-    let i2c_dev1 = I2cDevice::new(i2c_bus);
+    let i2c_imu = I2cDevice::new(i2c_bus);
+    let i2c_baro = I2cDevice::new(i2c_bus);
 
-    let mut bmi = imu::bmi(i2c_dev1).await;
+    let mut bmi = imu::bmi(i2c_imu).await;
+    let mut bmp = baro::bmp5(i2c_baro, embassy_stm32::gpio::Pull::Up)
+        .await
+        .expect("failed to initialise barometer");
 
     info!("beep!");
     buzzer.buzz(Duration::from_millis(100), Hertz(1000)).await;
@@ -82,8 +87,17 @@ async fn main(_spawner: Spawner) {
     loop {
         Timer::after(Duration::from_millis(1000)).await;
 
-        let data = bmi.get_data().await.expect("Failed to read BMI2 data");
+        let data_imu = bmi.get_data().await.expect("Failed to read BMI2 data");
+        let data_pres = bmp.meas_pres().await.expect("failed to read pressure");
+        let data_temp = bmp.meas_temp().await.expect("failed to read temperature");
 
-        defmt::println!("Accel: x={} y={} z={}", data.acc.x, data.acc.y, data.acc.z);
+        defmt::println!(
+            "Accel: x={} y={} z={}\nBaro: pressure={}hPa temp={}°C",
+            data_imu.acc.x,
+            data_imu.acc.y,
+            data_imu.acc.z,
+            data_pres,
+            data_temp,
+        );
     }
 }

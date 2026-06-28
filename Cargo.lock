@@ -87,6 +87,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bmp5xx"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99d9cb87de217a8a9bfd6b47039932c34f7c510f24832c3d58f3bc3fe0fbbd04"
+dependencies = [
+ "byteorder",
+ "embedded-hal-async",
+]
+
+[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1032,6 +1042,7 @@ name = "titania-firmware"
 version = "0.1.0"
 dependencies = [
  "bmi2",
+ "bmp5xx",
  "cortex-m",
  "cortex-m-rt",
  "defmt 1.1.0",

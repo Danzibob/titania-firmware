@@ -25,8 +25,8 @@ embassy-time = { version = "0.5.1", features = [
   "tick-hz-32_768",
 ] }
 
-defmt = "1.0.1"
-defmt-rtt = "1.0.0"
+defmt = "1.1.0"
+defmt-rtt = "1.1.0"
 embassy-embedded-hal = { version = "0.6.0", features = ["defmt"] }
 cortex-m = { version = "0.7.6", features = [
   "inline-asm",
@@ -40,6 +40,7 @@ panic-probe = { version = "1.0.0", features = ["print-defmt"] }
 bmi2 = { git = "https://github.com/qrasmont/bmi2.git", rev = "d9c5fea26f5837e7a65881fc37f72dcbc25caf67", features = [
   "async",
 ] }
+bmp5xx = "2.0.0"
 
 [profile.release]
 opt-level = "z"
