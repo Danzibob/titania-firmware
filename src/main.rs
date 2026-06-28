@@ -1,11 +1,13 @@
 #![no_std]
 #![no_main]
+#![warn(clippy::pedantic)]
+#![allow(clippy::used_underscore_binding)]
 
 mod buzz;
 mod imu;
 mod rickroll;
 
-use defmt::*;
+use defmt::{info, warn};
 use defmt_rtt as _;
 
 cfg_select! {
@@ -21,7 +23,7 @@ use embassy_executor::Spawner;
 use embassy_stm32::gpio::OutputType;
 use embassy_stm32::i2c::I2c;
 use embassy_stm32::mode::Async;
-use embassy_stm32::peripherals::*;
+use embassy_stm32::peripherals::{DMA1_CH2, DMA1_CH3, I2C1};
 use embassy_stm32::time::Hertz;
 use embassy_stm32::timer::Channel;
 use embassy_stm32::timer::low_level::CountingMode;
@@ -50,7 +52,7 @@ bind_interrupts!(struct Irqs {
     entry = "cortex_m_rt::entry"
 )]
 async fn main(_spawner: Spawner) {
-    let p = embassy_stm32::init(Default::default());
+    let p = embassy_stm32::init(embassy_stm32::Config::default());
 
     info!("Titania starting");
 
@@ -78,7 +80,7 @@ async fn main(_spawner: Spawner) {
         p.DMA1_CH2,
         p.DMA1_CH3,
         Irqs,
-        Default::default(),
+        embassy_stm32::i2c::Config::default(),
     );
     // Wrap the I2C bus in a mutex to allow sharing between multiple devices.
     let i2c_bus = I2C_BUS.init(Mutex::new(i2c));

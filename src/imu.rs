@@ -2,6 +2,7 @@ use crate::I2cBusDevice;
 
 use bmi2::Bmi2;
 use bmi2::interface::I2cInterface;
+#[allow(clippy::wildcard_imports)]
 use bmi2::types::*;
 use bmi2::{Builder, I2cAddr, config};
 

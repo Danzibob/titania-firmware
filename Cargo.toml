@@ -55,6 +55,7 @@ build = [
 ]
 
 [package.metadata.cargo-machete]
+# portable atomic provides atomics implementations that cargo machete can't see
 ignored = ["portable-atomic", "cortex-m"]
 
 [profile.dev]
